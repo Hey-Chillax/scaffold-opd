@@ -4,11 +4,11 @@
 
     python3 tools/analysis/collect_results.py \
         --eval base=outputs/eval/base \
-        --eval takeover_40=outputs/compare_<id>/eval/takeover_step40 \
+        --eval scaffold_40=outputs/compare_<id>/eval/scaffold_step40 \
         --eval opd_40=outputs/compare_<id>/eval/opd_step40 \
-        --pair takeover_40:opd_40 --pair takeover_40:base --pair takeover_40:opd_40@16384 \
-        --budget takeover_40:opd_40 \
-        --train_log takeover=outputs/compare_<id>/takeover/training.log \
+        --pair scaffold_40:opd_40 --pair scaffold_40:base --pair scaffold_40:opd_40@16384 \
+        --budget scaffold_40:opd_40 \
+        --train_log scaffold=outputs/compare_<id>/scaffold/training.log \
         > results.json
 
 Each --eval directory holds <bench>.jsonl from opd/eval/math_benchmarks.py, one record per sample.

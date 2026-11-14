@@ -8,7 +8,7 @@ CPU only. It joins three inputs on the problem text:
     --scores          pipeline/filter_teacher_data.py's per-problem teacher verdicts
     --rollout_dir     the rollout_dump/ of the previous stage: <step>.jsonl with `input` and `score`
 
-A relay rollout scores 0 both when the student answered wrongly and when the run was stopped after its last
+A Scaffold-OPD rollout scores 0 both when the student answered wrongly and when the run was stopped after its last
 takeover, so the stats report the two apart. The output has the source columns, for METHOD=grpo's TRAIN_DATA.
 """
 

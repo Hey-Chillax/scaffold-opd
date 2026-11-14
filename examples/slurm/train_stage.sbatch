@@ -7,7 +7,7 @@
 # Copyright 2026 Yi Zhang
 # SPDX-License-Identifier: Apache-2.0
 #
-# Slurm wrapper around pipeline/train_stage.sh. Pick the method with METHOD=takeover|opd|grpo|sft; 40 steps of Takeover OPD took about 7 hours on two A100s.
+# Slurm wrapper around pipeline/train_stage.sh. Pick the method with METHOD=scaffold|opd|grpo|sft; 40 steps of Scaffold-OPD took about 7 hours on two A100s.
 # Submit from the repository root and add your cluster's partition and account on the command line:
 #   sbatch --partition=<partition> --account=<account> examples/slurm/train_stage.sbatch
 # Every variable the wrapped script reads passes through, e.g. MODEL_DIR, DATA_DIR, OUTPUT_ROOT, CKPT_DIR, VENV and

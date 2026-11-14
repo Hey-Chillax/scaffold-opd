@@ -8,12 +8,12 @@
 #      GPU, as many at a time as there are GPUs
 # A failed phase does not stop the later ones; the script exits non-zero if any phase failed.
 #
-#   bash pipeline/compare_methods.sh                       # Takeover OPD and OPD, 60 steps each
+#   bash pipeline/compare_methods.sh                       # Scaffold-OPD and OPD, 60 steps each
 #   METHODS=grpo ROLLOUT_N=8 bash pipeline/compare_methods.sh
 #   DRY_RUN=1 bash pipeline/compare_methods.sh
 #
 # Env (everything train_stage.sh and eval.sh read passes through; see common.sh for paths):
-#   METHODS          training runs, in order, default "takeover opd"
+#   METHODS          training runs, in order, default "scaffold opd"
 #   STEPS            default 60
 #   BATCH            default 128
 #   SAVE_FREQ        default 20, so each run keeps the checkpoints of steps 20, 40 and 60
@@ -32,7 +32,7 @@ cd "$REPO_ROOT" || exit 1
 
 run_id=${RUN_ID:-$(date +%Y%m%d_%H%M%S)}
 root=$OUTPUT_ROOT/compare_$run_id
-methods=${METHODS:-takeover opd}
+methods=${METHODS:-scaffold opd}
 export STEPS=${STEPS:-60} BATCH=${BATCH:-128} SAVE_FREQ=${SAVE_FREQ:-20}
 export STUDENT_MODEL=${STUDENT_MODEL:-$DEFAULT_STUDENT}
 read -r -a eval_steps <<<"${EVAL_STEPS:-40 60}"

@@ -1,9 +1,11 @@
 # Scaffold-OPD
 
 Scaffold-OPD is a post-training pipeline that teaches a small language model long chain-of-thought math reasoning
-from a stronger teacher: **SFT → Takeover OPD → RL**. It is built on [veRL](https://github.com/volcengine/verl)
-and [vLLM](https://github.com/vllm-project/vllm). The default setup distills Qwen3-4B-Instruct-2507 into
-Qwen3-1.7B on DAPO-Math and evaluates on MATH-500 and AIME 2024/2025/2026.
+from a stronger teacher. Its core stage, also called Scaffold-OPD, is on-policy distillation in which the teacher
+briefly takes over the student's rollout at reflection points; the full pipeline is **SFT → Scaffold-OPD → RL**.
+It is built on [veRL](https://github.com/volcengine/verl) and [vLLM](https://github.com/vllm-project/vllm). The
+default setup distills Qwen3-4B-Instruct-2507 into Qwen3-1.7B on DAPO-Math and evaluates on MATH-500 and
+AIME 2024/2025/2026.
 
 ## Overview
 
@@ -12,16 +14,16 @@ The pipeline runs five steps and evaluates the student after each training stage
 1. **Teacher data.** The teacher writes one solution per training problem.
 2. **Rejection sampling.** Solutions that finish and pass a rule-based answer grader are kept.
 3. **SFT.** The student is fine-tuned on the kept solutions for one epoch.
-4. **Takeover OPD.** The student generates on-policy. Whenever the teacher's most likely next token is a
+4. **Scaffold-OPD.** The student generates on-policy. Whenever the teacher's most likely next token is a
    reflection token (`Wait`, `But`, ...) outside the student's top-5, the teacher takes over for a few paragraphs
    and then hands generation back, and the whole trajectory is trained with token-level reverse-KL distillation.
    The rollout runs inside vLLM speculative decoding with the roles swapped (the student drafts, the teacher
    verifies), so finding takeover points costs no extra forward pass. An optional concluding trigger also lets the
    teacher take over to write the final answer.
-5. **GRPO on failures.** Problems the teacher solved but the student never solved during Takeover OPD are trained
+5. **GRPO on failures.** Problems the teacher solved but the student never solved during Scaffold-OPD are trained
    with outcome-reward GRPO.
 
-Every stage can also run on its own, for example Takeover OPD, standard OPD or GRPO directly from the base model.
+Every stage can also run on its own, for example Scaffold-OPD, standard OPD or GRPO directly from the base model.
 
 ## Installation
 
@@ -80,8 +82,8 @@ bash pipeline/run_pipeline.sh --run-id demo --dry-run     # print every stage's 
 Running again with the same `--run-id` resumes after the last finished stage. Single stages from the base model:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1 METHOD=takeover bash pipeline/train_stage.sh                      # Takeover OPD
-CUDA_VISIBLE_DEVICES=0,1 METHOD=takeover CONCLUDE_TRIGGER=1 bash pipeline/train_stage.sh   # + concluding trigger
+CUDA_VISIBLE_DEVICES=0,1 METHOD=scaffold bash pipeline/train_stage.sh                      # Scaffold-OPD
+CUDA_VISIBLE_DEVICES=0,1 METHOD=scaffold CONCLUDE_TRIGGER=1 bash pipeline/train_stage.sh   # + concluding trigger
 CUDA_VISIBLE_DEVICES=0,1 METHOD=opd bash pipeline/train_stage.sh                           # standard OPD
 CUDA_VISIBLE_DEVICES=0,1 METHOD=grpo bash pipeline/train_stage.sh                          # GRPO
 ```
@@ -109,7 +111,7 @@ pipeline/         end-to-end and per-stage scripts, data preparation, rejection 
 examples/slurm/   Slurm wrappers for the pipeline scripts
 tools/analysis/   result collection, plots, evaluation and rollout statistics, contamination check
 opd/              vLLM takeover-rollout patch, training launchers, math evaluator and reward
-verl/             veRL with the trainer-side changes for takeover training
+verl/             veRL with the trainer-side changes for Scaffold-OPD training
 tests/opd/        CPU unit tests
 environment/      pinned dependencies and the installation check
 ```
@@ -119,7 +121,7 @@ environment/      pinned dependencies and the installation check
 - [veRL](https://github.com/volcengine/verl) and [vLLM](https://github.com/vllm-project/vllm) for training and
   rollout.
 - [Relay-OPD](https://arxiv.org/abs/2607.26057) and its [code](https://github.com/zju-real/Relay-OPD), which the
-  Takeover OPD stage builds on.
+  Scaffold-OPD stage builds on.
 - [Qwen3](https://github.com/QwenLM/Qwen3) for the models and [DAPO-Math](https://github.com/BytedTsinghua-SIA/DAPO)
   for the training problems.
 - MATH-500, AIME 2024, AIME 2025 (OpenCompass) and AIME 2026 ([MathArena](https://matharena.ai/)) for evaluation.

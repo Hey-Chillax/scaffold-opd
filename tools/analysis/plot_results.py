@@ -5,8 +5,8 @@
     uv run --no-project --with matplotlib --with pandas \
         python tools/analysis/plot_results.py --data results.json --out figures
 
-Expected run names in the JSON: base, sft, grpo_128x8_60, opd_40, takeover_40, pipeline_takeover, pipeline_grpo,
-the budget pair takeover_40:opd_40, and the training logs "takeover" and "opd". Colors: the takeover runs are blue,
+Expected run names in the JSON: base, sft, grpo_128x8_60, opd_40, scaffold_40, pipeline_scaffold, pipeline_grpo,
+the budget pair scaffold_40:opd_40, and the training logs "scaffold" and "opd". Colors: the Scaffold-OPD runs are blue,
 OPD is ochre, everything else is neutral gray.
 """
 
@@ -28,17 +28,17 @@ INK2 = "#52514e"
 MUTED = "#898781"
 GRID = "#e1e0d9"
 AXIS = "#c3c2b7"
-TAKEOVER = "#3669AB"
+SCAFFOLD = "#3669AB"
 OPD = "#B5812E"
 NEUTRAL = "#a6a59e"
 DPI = 200
 BAR_IN = 0.24  # bar thickness in inches
 END_RADIUS_PT = 3  # rounded data end of a bar
-# One training step of the takeover run produced degenerate rollouts (looping text) and is left out of its curves.
+# One training step of the Scaffold-OPD run produced degenerate rollouts (looping text) and is left out of its curves.
 ANOMALY_STEP = 19
 # Training time on two A100 80 GB GPUs, in GPU-hours, evaluation excluded. SFT includes generating the teacher data
-# (4.5 h) and one epoch (3.9 h); the pipeline adds Takeover OPD (7.7 h) and GRPO (10.0 h).
-GPU_HOURS = {"sft": 16.8, "grpo_128x8_60": 33.8, "opd_40": 13.2, "takeover_40": 13.2, "pipeline_grpo": 52.4}
+# (4.5 h) and one epoch (3.9 h); the pipeline adds Scaffold-OPD (7.7 h) and GRPO (10.0 h).
+GPU_HOURS = {"sft": 16.8, "grpo_128x8_60": 33.8, "opd_40": 13.2, "scaffold_40": 13.2, "pipeline_grpo": 52.4}
 PIPELINE_CUMULATIVE_GPU_HOURS = [None, 16.8, 32.2, 52.4]
 
 plt.rcParams.update(
@@ -137,8 +137,8 @@ def fig_methods(data, out):
         ("GRPO", "60 steps x 128 prompts x 8 rollouts", "grpo_128x8_60", NEUTRAL),
         ("SFT", "filtered teacher data, 1 epoch", "sft", NEUTRAL),
         ("OPD", "40 steps x 128 prompts", "opd_40", OPD),
-        ("Takeover OPD", "40 steps x 128 prompts", "takeover_40", TAKEOVER),
-        ("Full pipeline", "SFT → Takeover OPD → GRPO", "pipeline_grpo", TAKEOVER),
+        ("Scaffold-OPD", "40 steps x 128 prompts", "scaffold_40", SCAFFOLD),
+        ("Full pipeline", "SFT → Scaffold-OPD → GRPO", "pipeline_grpo", SCAFFOLD),
     ):
         rows.append((name, f"{detail} · {GPU_HOURS[key]:.1f} GPU-h", e[key]["avg4"], color))
     fig, ax = plt.subplots(figsize=(8.8, 3.9), dpi=DPI)
@@ -165,7 +165,7 @@ def fig_methods(data, out):
             fontsize=7.3,
             color=MUTED,
         )
-    pair = data["paired"]["takeover_40-opd_40"]
+    pair = data["paired"]["scaffold_40-opd_40"]
     x = 52.0
     ax.plot([x - 0.6, x, x, x - 0.6], [3, 3, 4, 4], color=INK2, linewidth=0.9, zorder=4)
     ax.text(x + 0.8, 3.62, f"+{pair['diff']:.2f} ± {pair['se']:.2f}", fontsize=9, va="center", ha="left")
@@ -182,12 +182,12 @@ def fig_methods(data, out):
 
 
 def fig_pipeline(data, out):
-    """The pipeline stage by stage, next to Takeover OPD trained directly from the untrained student."""
+    """The pipeline stage by stage, next to Scaffold-OPD trained directly from the untrained student."""
     e = data["eval"]
     stages = [
         ("Untrained", e["base"]["avg4"]),
         ("SFT", e["sft"]["avg4"]),
-        ("+ Takeover OPD\n40 steps", e["pipeline_takeover"]["avg4"]),
+        ("+ Scaffold-OPD\n40 steps", e["pipeline_scaffold"]["avg4"]),
         ("+ GRPO 30 steps\non failures", e["pipeline_grpo"]["avg4"]),
     ]
     direct_x = 4.7
@@ -216,16 +216,16 @@ def fig_pipeline(data, out):
             fontsize=7.5,
             color=MUTED,
         )
-    direct = e["takeover_40"]["avg4"]
-    bar(ax, direct_x, direct, TAKEOVER, horizontal=False)
+    direct = e["scaffold_40"]["avg4"]
+    bar(ax, direct_x, direct, SCAFFOLD, horizontal=False)
     ax.text(direct_x, direct + 1.0, f"{direct:.2f}", ha="center", va="bottom", fontsize=9)
     ax.text(
         direct_x, direct + 5.0, f"+{direct - stages[0][1]:.2f}", ha="center", va="bottom", fontsize=7.5, color=MUTED
     )
-    ax.text(direct_x, -2.2, "Takeover OPD only\n40 steps", ha="center", va="top", fontsize=8.5, linespacing=1.3)
-    ax.text(direct_x, -13.5, f"{GPU_HOURS['takeover_40']:.1f} GPU-h", ha="center", va="top", fontsize=7.5, color=MUTED)
+    ax.text(direct_x, -2.2, "Scaffold-OPD only\n40 steps", ha="center", va="top", fontsize=8.5, linespacing=1.3)
+    ax.text(direct_x, -13.5, f"{GPU_HOURS['scaffold_40']:.1f} GPU-h", ha="center", va="top", fontsize=7.5, color=MUTED)
     ax.axvline((3 + direct_x) / 2, color=GRID, linewidth=0.8, zorder=1)
-    pair = data["paired"]["pipeline_grpo-takeover_40"]
+    pair = data["paired"]["pipeline_grpo-scaffold_40"]
     top = max(stages[-1][1], direct) + 10.0
     ax.plot([3, 3, direct_x, direct_x], [top - 0.8, top, top, top - 0.8], color=INK2, linewidth=0.9)
     ax.text(
@@ -238,15 +238,15 @@ def fig_pipeline(data, out):
     )
     fig.legend(
         handles=[
-            Patch(color=NEUTRAL, label="Pipeline SFT → Takeover OPD → GRPO"),
-            Patch(color=TAKEOVER, label="Takeover OPD only"),
+            Patch(color=NEUTRAL, label="Pipeline SFT → Scaffold-OPD → GRPO"),
+            Patch(color=SCAFFOLD, label="Scaffold-OPD only"),
         ],
         loc="upper left",
         ncols=2,
         bbox_to_anchor=(0.085, 0.86),
         handlelength=1.0,
     )
-    title(fig, "Every stage adds accuracy; the full pipeline ties Takeover OPD alone", 0.975)
+    title(fig, "Every stage adds accuracy; the full pipeline ties Scaffold-OPD alone", 0.975)
     subtitle(
         fig, "Qwen3-1.7B from the untrained model · MATH-500 and AIME 2024/25/26, T=1.0, 32k tokens · single seed", 0.9
     )
@@ -279,19 +279,19 @@ def end_dot(ax, x, y, color):
 
 
 def fig_budget(data, out):
-    """Takeover OPD vs OPD (both step 40) as the evaluation token budget grows."""
+    """Scaffold-OPD vs OPD (both step 40) as the evaluation token budget grows."""
     b = data["budget"]
     budgets = b["budgets"]
     fig, axes = plt.subplots(1, 3, figsize=(12.0, 3.7), dpi=DPI)
     fig.subplots_adjust(left=0.05, right=0.97, top=0.74, bottom=0.17, wspace=0.28)
     ax = axes[0]
-    for name, color in (("opd_40", OPD), ("takeover_40", TAKEOVER)):
+    for name, color in (("opd_40", OPD), ("scaffold_40", SCAFFOLD)):
         ax.plot(budgets, b[name]["avg4"], color=color, linewidth=2)
         end_dot(ax, budgets[-1], b[name]["avg4"][-1], color)
     ax.text(
         budgets[-1] * 0.93,
-        b["takeover_40"]["avg4"][-1] + 1.5,
-        f"{b['takeover_40']['avg4'][-1]:.1f}",
+        b["scaffold_40"]["avg4"][-1] + 1.5,
+        f"{b['scaffold_40']['avg4'][-1]:.1f}",
         ha="right",
         fontsize=8.5,
     )
@@ -303,40 +303,40 @@ def fig_budget(data, out):
     log2_budget_axis(ax)
 
     ax = axes[1]
-    diff = b["takeover_40-opd_40"]["diff"]
-    half = [1.96 * s for s in b["takeover_40-opd_40"]["se"]]
+    diff = b["scaffold_40-opd_40"]["diff"]
+    half = [1.96 * s for s in b["scaffold_40-opd_40"]["se"]]
     ax.fill_between(
         budgets,
         [d - h for d, h in zip(diff, half, strict=True)],
         [d + h for d, h in zip(diff, half, strict=True)],
-        color=TAKEOVER,
+        color=SCAFFOLD,
         alpha=0.12,
         linewidth=0,
     )
     ax.axhline(0, color=AXIS, linewidth=0.9)
-    ax.plot(budgets, diff, color=TAKEOVER, linewidth=2)
-    end_dot(ax, budgets[-1], diff[-1], TAKEOVER)
+    ax.plot(budgets, diff, color=SCAFFOLD, linewidth=2)
+    end_dot(ax, budgets[-1], diff[-1], SCAFFOLD)
     for target, text, fx, dy, ha in (
         (4096, "4k: {:+.1f}", 1.0, -1.7, "center"),
         (8192, "8k: {:+.1f}", 1 / 1.1, 0.9, "right"),
         (16384, "16k: {:+.1f}", 1.1, -1.0, "left"),
     ):
         i = budgets.index(target)
-        ax.plot([target], [diff[i]], marker="o", markersize=4.5, color=TAKEOVER, linestyle="none", zorder=4)
+        ax.plot([target], [diff[i]], marker="o", markersize=4.5, color=SCAFFOLD, linestyle="none", zorder=4)
         ax.text(target * fx, diff[i] + dy, text.format(diff[i]), ha=ha, fontsize=8, color=INK2)
     ax.text(budgets[-1] * 0.93, diff[-1] + 1.1, f"32k: {diff[-1]:+.1f}", ha="right", fontsize=8.5)
     ax.set_ylim(-7, 9)
-    ax.set_title("Takeover OPD − OPD (paired, 95% band)")
+    ax.set_title("Scaffold-OPD − OPD (paired, 95% band)")
     log2_budget_axis(ax)
 
     ax = axes[2]
-    for name, color in (("opd_40", OPD), ("takeover_40", TAKEOVER)):
+    for name, color in (("opd_40", OPD), ("scaffold_40", SCAFFOLD)):
         ax.plot(budgets, b[name]["aime_finished"], color=color, linewidth=2)
         end_dot(ax, budgets[-1], b[name]["aime_finished"][-1], color)
     i = budgets.index(16384)
     ax.axvline(16384, color=GRID, linewidth=0.9, zorder=1)
     ax.text(16384 * 0.92, 8, "training response cap 16k", ha="right", fontsize=7.5, color=MUTED)
-    for name, dy in (("opd_40", -1), ("takeover_40", -2)):
+    for name, dy in (("opd_40", -1), ("scaffold_40", -2)):
         ax.text(
             16384 * 1.08,
             b[name]["aime_finished"][i] + dy,
@@ -351,14 +351,14 @@ def fig_budget(data, out):
 
     fig.legend(
         handles=[
-            Line2D([], [], color=TAKEOVER, linewidth=2, label="Takeover OPD, step 40"),
+            Line2D([], [], color=SCAFFOLD, linewidth=2, label="Scaffold-OPD, step 40"),
             Line2D([], [], color=OPD, linewidth=2, label="OPD, step 40"),
         ],
         loc="upper right",
         ncols=2,
         bbox_to_anchor=(0.97, 0.985),
     )
-    title(fig, "The advantage of Takeover OPD grows with the reasoning budget", 0.975)
+    title(fig, "The advantage of Scaffold-OPD grows with the reasoning budget", 0.975)
     subtitle(
         fig,
         "The same 32k evaluation outputs cut back to each budget (correct only if finished within it) · "
@@ -378,11 +378,11 @@ def window(series, steps, lo, hi):
 
 
 def fig_training(data, out):
-    """Training curves of Takeover OPD and OPD, 128 prompts per step."""
+    """Training curves of Scaffold-OPD and OPD, 128 prompts per step."""
     runs = {}
-    for name in ("takeover", "opd"):
+    for name in ("scaffold", "opd"):
         df = pd.DataFrame(data["train"][name]).set_index("step").astype(float)
-        if name == "takeover":
+        if name == "scaffold":
             df.loc[ANOMALY_STEP] = float("nan")
             df["teacher_tokens"] = df["relay/teacher_token_ratio"] * df["response_length/mean"]
         runs[name] = df
@@ -392,15 +392,15 @@ def fig_training(data, out):
         (
             axes[0, 0],
             "opd/k1/student_leg_mean",
-            ("takeover", "opd"),
+            ("scaffold", "opd"),
             "Student-written tokens: k1 (reverse-KL estimate)",
             1,
         ),
-        (axes[0, 1], "response_length/mean", ("takeover", "opd"), "Mean training response length (tokens)", 1),
-        (axes[1, 0], "relay/teacher_token_ratio", ("takeover",), "Takeover OPD: share of teacher tokens (%)", 100),
-        (axes[1, 1], "teacher_tokens", ("takeover",), "Takeover OPD: teacher tokens per response", 1),
+        (axes[0, 1], "response_length/mean", ("scaffold", "opd"), "Mean training response length (tokens)", 1),
+        (axes[1, 0], "relay/teacher_token_ratio", ("scaffold",), "Scaffold-OPD: share of teacher tokens (%)", 100),
+        (axes[1, 1], "teacher_tokens", ("scaffold",), "Scaffold-OPD: teacher tokens per response", 1),
     ]
-    colors = {"takeover": TAKEOVER, "opd": OPD}
+    colors = {"scaffold": SCAFFOLD, "opd": OPD}
     for ax, key, names, label, scale in panels:
         ax.axvspan(ANOMALY_STEP - 0.5, ANOMALY_STEP + 0.5, color=GRID, alpha=0.7, linewidth=0, zorder=0)
         for name in names:
@@ -413,11 +413,11 @@ def fig_training(data, out):
             end_dot(ax, last.index[-1], last.iloc[-1], colors[name])
         ax.set_title(label)
         ax.set_xlim(0, 62)
-    takeover = runs["takeover"]
-    steps = takeover.index.to_series()
-    ratio = takeover["relay/teacher_token_ratio"] * 100
-    tokens = takeover["teacher_tokens"]
-    length = takeover["response_length/mean"]
+    scaffold = runs["scaffold"]
+    steps = scaffold.index.to_series()
+    ratio = scaffold["relay/teacher_token_ratio"] * 100
+    tokens = scaffold["teacher_tokens"]
+    length = scaffold["response_length/mean"]
     axes[1, 0].text(
         60,
         ratio.max() * 0.92,
@@ -454,7 +454,7 @@ def fig_training(data, out):
         ax.set_xlabel("training step")
     fig.legend(
         handles=[
-            Line2D([], [], color=TAKEOVER, linewidth=2, label="Takeover OPD"),
+            Line2D([], [], color=SCAFFOLD, linewidth=2, label="Scaffold-OPD"),
             Line2D([], [], color=OPD, linewidth=2, label="OPD"),
         ],
         loc="upper right",

@@ -2,22 +2,22 @@
 # Copyright 2026 Yi Zhang
 # SPDX-License-Identifier: Apache-2.0
 #
-# Train one stage on one machine: Takeover OPD, plain OPD, GRPO or SFT.
+# Train one stage on one machine: Scaffold-OPD, plain OPD, GRPO or SFT.
 #
-#   METHOD=takeover bash pipeline/train_stage.sh [extra Hydra overrides ...]
+#   METHOD=scaffold bash pipeline/train_stage.sh [extra Hydra overrides ...]
 #   METHOD=opd      bash pipeline/train_stage.sh
 #   METHOD=grpo     bash pipeline/train_stage.sh
 #   METHOD=sft TRAIN_DATA=<filtered teacher parquet> bash pipeline/train_stage.sh
-#   DRY_RUN=1 METHOD=takeover bash pipeline/train_stage.sh      # print the configuration and command only
+#   DRY_RUN=1 METHOD=scaffold bash pipeline/train_stage.sh      # print the configuration and command only
 #
-# Takeover OPD and OPD put the student (FSDP actor + vLLM rollout) and the teacher (log-prob prefill) on
+# Scaffold-OPD and OPD put the student (FSDP actor + vLLM rollout) and the teacher (log-prob prefill) on
 # separate GPUs; GRPO and SFT train on every visible GPU. The reported runs used two 80 GB GPUs.
 #
 # Env (all optional; see pipeline/common.sh for MODEL_DIR, DATA_DIR, OUTPUT_ROOT, VENV, ENV_SETUP, DRY_RUN):
-#   METHOD            takeover (default; called "relay" in config keys and metric names) | opd | grpo | sft
-#   CONCLUDE_TRIGGER  takeover only: 1 adds the answer-header tokens (" Final", "Answer", and "✅" right after
+#   METHOD            scaffold (default; "relay" in config keys and metric names) | opd | grpo | sft
+#   CONCLUDE_TRIGGER  scaffold only: 1 adds the answer-header tokens (" Final", "Answer", and "✅" right after
 #                     "###") to the reflection triggers, so the teacher can also take over to conclude
-#   STEPS             training steps; default 40 for takeover and opd, 60 for grpo, 0 (one epoch) for sft
+#   STEPS             training steps; default 40 for scaffold and opd, 60 for grpo, 0 (one epoch) for sft
 #   BATCH             prompts per step, also the PPO mini-batch, default 128
 #   ROLLOUT_N         grpo only: rollouts per prompt, default 8
 #   RESPONSE_LEN      max response tokens, default 16384
@@ -25,7 +25,7 @@
 #   TEACHER_MODEL     default $MODEL_DIR/Qwen3-4B-Instruct-2507
 #   TRAIN_DATA        default $DATA_DIR/train/dapo_math_17k_en.parquet (required for sft)
 #   BENCH             default $DATA_DIR/bench
-#   ACTOR_GPUS_PER_NODE / TEACHER_GPUS_PER_NODE   takeover/opd split, default half of the visible GPUs each
+#   ACTOR_GPUS_PER_NODE / TEACHER_GPUS_PER_NODE   scaffold/opd split, default half of the visible GPUs each
 #   OUTPUT_DIR        run directory (training.log, rollout_dump/, wandb/), default
 #                     $OUTPUT_ROOT/<method>_s<steps>_b<batch>_<timestamp>; use a fresh one per run, because verl
 #                     resumes from any checkpoint it finds there
@@ -50,10 +50,10 @@ setup_env
 set -u
 cd "$REPO_ROOT"
 
-METHOD=${METHOD:-takeover}
+METHOD=${METHOD:-scaffold}
 case "$METHOD" in
-    takeover | relay)
-        METHOD=takeover
+    scaffold | takeover | relay)
+        METHOD=scaffold
         LAUNCHER=opd/scripts/relay_opd/train.sh
         default_steps=40
         ;;
@@ -69,12 +69,12 @@ case "$METHOD" in
         LAUNCHER=opd/scripts/baselines/sft.sh
         default_steps=0
         ;;
-    *) die "METHOD must be takeover, opd, grpo or sft, got $METHOD" ;;
+    *) die "METHOD must be scaffold, opd, grpo or sft, got $METHOD" ;;
 esac
 distill=0
-[[ "$METHOD" == takeover || "$METHOD" == opd ]] && distill=1
+[[ "$METHOD" == scaffold || "$METHOD" == opd ]] && distill=1
 if [[ "${CONCLUDE_TRIGGER:-0}" == 1 ]]; then
-    [[ "$METHOD" == takeover ]] || die "CONCLUDE_TRIGGER=1 applies to METHOD=takeover only"
+    [[ "$METHOD" == scaffold ]] || die "CONCLUDE_TRIGGER=1 applies to METHOD=scaffold only"
     # The 45 default reflection triggers of opd/patches/vllm/speculative_decode.py, then the header words. With
     # " Final" in the list, the patch also counts "✅" right after "###" (RELAY_OPD_HEADER_CONCLUDE=auto).
     reflection="Wait, Wait,wait, wait,But, But,but, but,Hmm, Hmm, hmm,Actually, Actually,actually, actually,"
@@ -125,7 +125,7 @@ fi
 export TRAIN_BATCH_SIZE=$batch PPO_MINI_BATCH_SIZE=$batch
 export MAX_RESPONSE_LENGTH=$response_len VAL_MAX_RESPONSE_LENGTH=$response_len
 export ROLLOUT_N=${ROLLOUT_N:-8}
-if [[ "$METHOD" == takeover ]]; then
+if [[ "$METHOD" == scaffold ]]; then
     # The student's GPU hosts both the vLLM teacher (target) and the student (draft) during rollout. FSDP only
     # needs the card while vLLM sleeps, so vLLM gets a larger KV cache than the launcher's default.
     export ROLLOUT_GPU_MEMORY_UTILIZATION=${ROLLOUT_GPU_MEMORY_UTILIZATION:-0.6}
