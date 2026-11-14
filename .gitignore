@@ -1,0 +1,72 @@
+# --- run outputs: never commit ---
+/outputs/
+/checkpoints/
+/ckpt/
+**/global_step_*/
+rollout_dump/
+wandb/
+/logs/
+*.log
+slurm-*.out
+nohup.out
+.eval_started.*
+
+# --- model weights and tensors ---
+/models/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.gguf
+*.onnx
+*.npy
+*.npz
+
+# --- data (rebuilt with pipeline/prepare_data.py) ---
+/data/
+*.parquet
+*.jsonl
+*.arrow
+*.tar
+*.tar.gz
+*.zip
+
+# --- secrets and machine-local configuration ---
+.env
+.env.*
+.envrc
+*.token
+.netrc
+.claude/
+CLAUDE.md
+.sync-pending
+
+# --- private notes and documents ---
+/notes/
+*.pdf
+*.pptx
+*.docx
+
+# --- Python, tools and editors ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+/build/
+/dist/
+.venv/
+venv/
+.python-version
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.coverage
+htmlcov/
+.idea/
+.vscode/
+.history/
+*.swp
+*~
+.DS_Store

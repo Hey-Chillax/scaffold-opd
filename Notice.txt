@@ -1,0 +1,5 @@
+Scaffold-OPD
+Copyright 2026 Yi Zhang
+
+This project includes software from verl:
+Copyright 2023-2024 Bytedance Ltd. and/or its affiliates 
