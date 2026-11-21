@@ -7,6 +7,8 @@ It is built on [veRL](https://github.com/volcengine/verl) and [vLLM](https://git
 default setup distills Qwen3-4B-Instruct-2507 into Qwen3-1.7B on DAPO-Math and evaluates on MATH-500 and
 AIME 2024/2025/2026.
 
+Results and analysis are in the [project report](https://hey-chillax.github.io/projects/scaffold-opd.html).
+
 ## Overview
 
 The pipeline runs five steps and evaluates the student after each training stage:
@@ -24,6 +26,23 @@ The pipeline runs five steps and evaluates the student after each training stage
    with outcome-reward GRPO.
 
 Every stage can also run on its own, for example Scaffold-OPD, standard OPD or GRPO directly from the base model.
+
+<p align="center">
+  <img src="docs/figures/opd-pipeline.png" width="100%" alt="Scaffold-OPD pipeline: teacher solutions, rejection sampling, SFT, Scaffold-OPD and GRPO on failures, with the four-benchmark average after each training stage">
+</p>
+
+*The full pipeline: the four-benchmark average after each training stage, the gain over the previous stage, and the
+GPU-hours each stage took.*
+
+<p align="center">
+  <img src="docs/figures/opd-takeover.png" width="720" alt="Scaffold-OPD: the student drafts and the teacher verifies inside vLLM speculative decoding; at a reflection point or at the conclusion the teacher writes a short passage and hands back; every token of the relayed answer is then trained toward the teacher">
+</p>
+
+*One Scaffold-OPD rollout and its training signal (illustration; the example text, the top-5 words and the per-token
+probabilities are made up). ① The student drafts inside vLLM speculative decoding and the teacher verifies; at a
+reflection point or at the conclusion, the teacher rejects the student's draft token, writes a short passage and hands
+back. ② The two takeover rules. ③ The teacher scorer and the student score every token of the relayed answer; the
+per-token reverse KL trains the student, whoever wrote the token.*
 
 ## Installation
 
@@ -114,6 +133,7 @@ opd/              vLLM takeover-rollout patch, training launchers, math evaluato
 verl/             veRL with the trainer-side changes for Scaffold-OPD training
 tests/opd/        CPU unit tests
 environment/      pinned dependencies and the installation check
+docs/figures/     figures in this README
 ```
 
 ## Acknowledgements
